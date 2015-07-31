@@ -1,7 +1,7 @@
 ## Erlang telegram bot
 
 ##### Instruction
-To work you need a token. To retrieve the token follow the instructions here [how-do-i-create-a-bot] (https://core.telegram.org/bots/#3-how-do-i-create-a-bot)
+To work you need a token. To get the token follow the instructions here [how-do-i-create-a-bot] (https://core.telegram.org/bots/#3-how-do-i-create-a-bot)
 
 ##### Run:
 	make
