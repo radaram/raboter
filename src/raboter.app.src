@@ -1,0 +1,12 @@
+{application, raboter,
+ [
+  {description, "Telegram Bot"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { raboter, []}},
+  {env, []}
+ ]}.
