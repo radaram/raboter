@@ -16,7 +16,7 @@ start() ->
 
 
 command_handler(Url, UpdateId) ->
-	Response = parse_response(get_command(Url ++ integer_to_list(UpdateId))),
+	Response = parse_response(get_command(Url ++ integer_to_list(UpdateId + 1))),
 	{JsonObj} = jiffy:decode(Response),
 	Result = proplists:get_value(<<"result">>, JsonObj, []),
 	case Result of
@@ -24,27 +24,13 @@ command_handler(Url, UpdateId) ->
 			{From} = proplists:get_value(<<"from">>, Message),
 			ChatID = proplists:get_value(<<"id">>, From),
 			Command = proplists:get_value(<<"text">>, Message),
-			io:format("~w~n~n", [ChatID]),
-			choose_command(ChatID, Command);
+			run_command(ChatID, binary_to_list(Command));
 		[] -> 
 			NewUpdateId = UpdateId,
 			io:format("~w~n", [empty])
 	end,
 	timer:sleep(3000),
-	command_handler(Url, NewUpdateId + 1).
-
-
-choose_command(ChatID, Command) ->
-	case binary_to_list(Command) of 
-		"test" -> test(ChatID);
-		_ -> command_not_found(ChatID)
-    end.
-
-test(ChatID) -> 
-	send_message(ChatID, "Test message").
-
-command_not_found(ChatID) ->
-	send_message(ChatID, "Command not found").
+	command_handler(Url, NewUpdateId).
 
 send_message(ChatID, Text) ->
 	set_command(?SET_COMMAND_URL, "chat_id=" ++ integer_to_list(ChatID) ++ "&text=" ++ Text).
@@ -66,3 +52,17 @@ parse_response({ok, { _, _, Body}}) ->
 terminate() ->
 	ssl:stop(),
 	inets:stop().
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% You can expand the list of commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+run_command(ChatID, "test") -> 
+	send_message(ChatID, "Test message");
+
+run_command(ChatID, "/help") -> 
+	send_message(ChatID, "Help text");
+
+run_command(ChatID, _) ->
+	send_message(ChatID, "Command not found").
