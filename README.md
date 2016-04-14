@@ -9,3 +9,6 @@ To work you need a token. To get the token follow the instructions here [how-do-
 
 #####Technology:
 - Erlang
+
+## License
+Erlang telegram bot is released under the [MIT License](http://www.opensource.org/licenses/MIT).
