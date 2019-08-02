@@ -1,68 +1,121 @@
 -module(raboter).
+-behaviour(gen_server).
 
--export([start/0]).
+-export([start_link/0, 
+  send_message/2]).
 
--define(TOKEN, "<YOUR TOKEN>").
--define(BASE_URL, "https://api.telegram.org/bot" ++ ?TOKEN).
--define(GET_COMMAND_URL, ?BASE_URL ++ "/getUpdates?offset=").
--define(SET_COMMAND_URL, ?BASE_URL ++ "/sendMessage").
+-export([init/1,
+  handle_call/3,
+  handle_cast/2,
+  handle_info/2,
+  terminate/2,
+  code_change/3]).
 
+-define(SERVER, ?MODULE).
 
-start() ->
-	io:format("---Start bot---~n"),
-	inets:start(),
-	ssl:start(),
-	command_handler(?GET_COMMAND_URL, 0).
+-record(state, {url, update_id, token}).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% API
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-command_handler(Url, UpdateId) ->
-	Response = parse_response(get_command(Url ++ integer_to_list(UpdateId + 1))),
-	{JsonObj} = jiffy:decode(Response),
-	Result = proplists:get_value(<<"result">>, JsonObj, []),
-	case Result of
-		[{[{<<"update_id">>, NewUpdateId}, {<<"message">>, {Message}} |_]}] -> 
-			{From} = proplists:get_value(<<"from">>, Message),
-			ChatID = proplists:get_value(<<"id">>, From),
-			Command = proplists:get_value(<<"text">>, Message),
-			run_command(ChatID, binary_to_list(Command));
-		[] -> 
-			NewUpdateId = UpdateId,
-			io:format("~w~n", [empty])
-	end,
-	timer:sleep(3000),
-	command_handler(Url, NewUpdateId).
+start_link() ->
+  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 send_message(ChatID, Text) ->
-	set_command(?SET_COMMAND_URL, "chat_id=" ++ integer_to_list(ChatID) ++ "&text=" ++ Text).
+  set_command(set_command_url(), "chat_id=" ++ integer_to_list(ChatID) ++ "&text=" ++ Text).
 
-get_command(Url) ->	
-	request(get, {Url, []}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Gen server
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-set_command(Url, Data) -> 
-	Response = request(post, {Url, [], "application/x-www-form-urlencoded", Data}),
-	{ok, {{"HTTP/1.1",ReturnCode, State}, Head, Body}} = Response,
-	io:format("~w / ~w~n", [ReturnCode, State]).
+init([]) ->
+  io:format("---Start bot---~n"),
+  inets:start(),
+  ssl:start(),
+  self() ! flush,
+  {ok, #state{url = get_command_url(), update_id = 0}}.
+
+handle_call(token, _From, State) when State#state.token =:= undefined ->
+  {ok, Directory} = file:get_cwd(),
+  {ok, Data} = file:read_file(Directory ++ "/token.tok"),
+  {reply, binary_to_list(Data), State#state{token = binary_to_list(Data)}};
+  
+handle_call(token, _From, State) ->
+  {reply, State#state.token, State};
+
+handle_call(_Request, _From, State) ->
+  {reply, ok, State}.
+
+handle_cast(_Request, State) ->
+  {noreply, State}.
+
+handle_info(flush, State) ->
+  Response = parse_response(get_command(State#state.url ++ integer_to_list(State#state.update_id + 1))),
+  {JsonObj} = jiffy:decode(Response),
+  Result = proplists:get_value(<<"result">>, JsonObj, []),
+  case Result of
+	[{[{<<"update_id">>, NewUpdateId} | _]}] -> 
+      timer:send_after(3000, self(), flush);
+	[] -> 
+	  timer:send_after(3000, self(), command_check),
+	  NewUpdateId = State#state.update_id
+  end,
+  {noreply, State#state{update_id = NewUpdateId}};
+
+handle_info(command_check, State) ->
+  Response = parse_response(get_command(State#state.url ++ integer_to_list(State#state.update_id + 1))),
+  {JsonObj} = jiffy:decode(Response),
+  Result = proplists:get_value(<<"result">>, JsonObj, []),
+  case Result of
+	[{[{<<"update_id">>, NewUpdateId}, {<<"message">>, {Message}} |_]}] -> 
+      {From} = proplists:get_value(<<"from">>, Message),
+	  ChatID = proplists:get_value(<<"id">>, From),
+      Command = binary_to_list(proplists:get_value(<<"text">>, Message)),
+	  TargetModule = application:get_env(target),
+	  erlang:apply(TargetModule, run_command, [ChatID, Command]),
+	[] -> 
+	  NewUpdateId = State#state.update_id
+  end,
+  timer:send_after(3000, self(), command_check),
+  {noreply, State#state{update_id = NewUpdateId}};
+
+handle_info(_Info, State) ->
+  {noreply, State}.
+
+terminate(_Reason, _State) ->
+  ssl:stop(),
+  inets:stop().
+
+code_change(_OldVsn, State, _Extra) ->
+  {ok, State}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Internal functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+get_command(Url) ->
+  request(get, {Url, []}).
+
+set_command(Url, Data) ->
+  Response = request(post, {Url, [], "application/x-www-form-urlencoded", Data}),
+  {ok, {{"HTTP/1.1",ReturnCode, State}, _Head, _Body}} = Response,
+  io:format("~w / ~w~n", [ReturnCode, State]).
 
 request(Method, Body) ->
-    httpc:request(Method, Body, [{ssl,[{verify,0}]}], []).
+  httpc:request(Method, Body, [{ssl,[{verify,0}]}], []).
 
 parse_response({ok, { _, _, Body}}) ->
-	 Body.
+  Body.
 
-terminate() ->
-	ssl:stop(),
-	inets:stop().
+get_token() ->
+  gen_server:call(raboter, token).
 
+get_base_url() ->
+  "https://api.telegram.org/bot" ++ get_token().
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% You can expand the list of commands
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+get_command_url() ->
+  get_base_url() ++ "/getUpdates?offset=".
 
-run_command(ChatID, "test") -> 
-	send_message(ChatID, "Test message");
-
-run_command(ChatID, "/help") -> 
-	send_message(ChatID, "Help text");
-
-run_command(ChatID, _) ->
-	send_message(ChatID, "Command not found").
+set_command_url() ->
+  get_base_url() ++ "/sendMessage".
