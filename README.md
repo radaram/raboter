@@ -20,8 +20,12 @@ To check if the plugin is correctly reading received messages the following comm
 
     ./rebar3 shell
 
-then send a message to the created bot and check if an error arises: that is caused by the missing last step of the above instructions.
-If no error arises, double-check the token.tok location and your internet connection. 
+then send a message to the created bot and check for an answer: if the answer is in the form of:
+
+> Message is being ignored -> Message: << MESSAGE >> check if the environment variable is set correctly
+
+then the problem is in the last step of the instructions.
+If there is no answer after few seconds, double-check the token.tok location, its correctness and your internet connection. 
 
 ##### Issues:
 The plugin uses jiffy ([https://github.com/davisp/jiffy](https://github.com/davisp/jiffy)) to decode JSON answers created by the telegram bot API. jiffy may create some problems when working on windows: we suggest to move the program to a linux environment.
