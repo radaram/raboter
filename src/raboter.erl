@@ -65,7 +65,12 @@ handle_info(command_check, State) ->
 	  ChatID = proplists:get_value(<<"id">>, From),
       Command = binary_to_list(proplists:get_value(<<"text">>, Message)),
 	  TargetModule = application:get_env(target),
-	  erlang:apply(TargetModule, run_command, [ChatID, Command]);
+	  case TargetModule of
+	    undefined ->
+		  run_command(ChatID, Command);
+		_ ->
+	      erlang:apply(TargetModule, run_command, [ChatID, Command])
+	  end;
 	[] -> 
 	  NewUpdateId = State#state.update_id
   end,
@@ -113,3 +118,6 @@ get_command_url() ->
 
 set_command_url() ->
   get_base_url() ++ "/sendMessage".
+
+run_command(ChatID, Text) ->
+  send_message(ChatID, "Message is being ignored -> Message: <<" ++ Text ++ ">> check if the environment variable is set correctly").
