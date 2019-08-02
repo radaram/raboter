@@ -73,7 +73,7 @@ handle_info(command_check, State) ->
 	  ChatID = proplists:get_value(<<"id">>, From),
       Command = binary_to_list(proplists:get_value(<<"text">>, Message)),
 	  TargetModule = application:get_env(target),
-	  erlang:apply(TargetModule, run_command, [ChatID, Command]),
+	  erlang:apply(TargetModule, run_command, [ChatID, Command]);
 	[] -> 
 	  NewUpdateId = State#state.update_id
   end,
