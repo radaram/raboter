@@ -15,7 +15,16 @@ To include this dependency add the following line to the rebar config file. Note
 
 	{raboter, ".*", {git, "https://github.com/Robyroc/raboter", {branch, "master"}}}
 
+##### Test:
+To check if the plugin is correctly reading received messages the following command can be run while in the cloned repository:
 
+    ./rebar3 shell
+
+then send a message to the created bot and check if an error arises: that is caused by the missing last step of the above instructions.
+If no error arises, double-check the token.tok location and your internet connection. 
+
+##### Issues:
+The plugin uses jiffy ([https://github.com/davisp/jiffy](https://github.com/davisp/jiffy)) to decode JSON answers created by the telegram bot API. jiffy may create some problems when working on windows: we suggest to move the program to a linux environment.
 ##### Technology:
 - Erlang
 
