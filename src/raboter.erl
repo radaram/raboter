@@ -13,7 +13,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {url, update_id, token}).
+-record(state, {url, update_id}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% API
@@ -35,14 +35,6 @@ init([]) ->
   ssl:start(),
   self() ! flush,
   {ok, #state{url = get_command_url(), update_id = 0}}.
-
-handle_call(token, _From, State) when State#state.token =:= undefined ->
-  {ok, Directory} = file:get_cwd(),
-  {ok, Data} = file:read_file(Directory ++ "/token.tok"),
-  {reply, binary_to_list(Data), State#state{token = binary_to_list(Data)}};
-  
-handle_call(token, _From, State) ->
-  {reply, State#state.token, State};
 
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
@@ -109,7 +101,9 @@ parse_response({ok, { _, _, Body}}) ->
   Body.
 
 get_token() ->
-  gen_server:call(raboter, token).
+  {ok, Directory} = file:get_cwd(),
+  {ok, Data} = file:read_file(Directory ++ "/token.tok"),
+  binary_to_list(Data).
 
 get_base_url() ->
   "https://api.telegram.org/bot" ++ get_token().
