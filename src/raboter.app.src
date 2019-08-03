@@ -1,12 +1,15 @@
 {application, raboter,
- [
-  {description, "Telegram Bot"},
-  {vsn, "1"},
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
   {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {mod, { raboter, []}},
-  {env, []}
+  {mod, {raboter_app, []}},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
  ]}.
