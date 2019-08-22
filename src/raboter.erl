@@ -64,7 +64,7 @@ handle_info(command_check, State) ->
       {From} = proplists:get_value(<<"from">>, Message),
 	  ChatID = proplists:get_value(<<"id">>, From),
       Command = binary_to_list(proplists:get_value(<<"text">>, Message)),
-	  TargetModule = application:get_env(target),
+	  {ok, TargetModule} = application:get_env(target),
 	  case TargetModule of
 	    undefined ->
 		  run_command(ChatID, Command);
