@@ -13,7 +13,10 @@
 ##### Include:
 To include this dependency add the following line to the rebar config file. Note that this version supports rebar3 and it's highly suggested to use it.
 
-	{raboter, ".*", {git, "https://github.com/Robyroc/raboter", {branch, "master"}}}
+	{raboter, ".*", {git, "https://github.com/radist101/raboter", {branch, "master"}}}
+
+##### Usage:
+To send a message call the function `raboter:send_message(ChatId, Text).` where ChatId is a value identifying the conversation, Text is the message to be sent. If you want more help you can find an example of a bot [here](https://github.com/Robyroc/repeato).
 
 ##### Test:
 To check if the plugin is correctly reading received messages the following command can be run while in the cloned repository:
