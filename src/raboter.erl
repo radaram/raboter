@@ -68,8 +68,8 @@ handle_info(command_check, State) ->
 	  case TargetModule of
 	    undefined ->
 		  run_command(ChatID, Command);
-		_ ->
-	      erlang:apply(TargetModule, run_command, [ChatID, Command])
+		{ok, Target} ->
+	      erlang:apply(Target, run_command, [ChatID, Command])
 	  end;
 	[] -> 
 	  NewUpdateId = State#state.update_id
